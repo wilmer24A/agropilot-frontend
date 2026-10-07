@@ -1,10 +1,12 @@
 "use client";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 const API_KEY = process.env.NEXT_PUBLIC_API_KEY;
 
 interface Parcela {
+  id?: string;
   nombre: string;
   cultivo: string;
   hectareas: number;
@@ -75,6 +77,7 @@ function TarjetaParcela({ parcela, urgente }: { parcela: Parcela; urgente: boole
 }
 
 export default function Dashboard() {
+  const router = useRouter();
   const [datos, setDatos] = useState<Dashboard | null>(null);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState("");
@@ -134,7 +137,7 @@ export default function Dashboard() {
           <div className="mb-6">
             <h2 className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-3">Acción urgente hoy</h2>
             <div className="space-y-3">
-              {datos.urgente.map((p, i) => <TarjetaParcela key={i} parcela={p} urgente={true} />)}
+              {datos.urgente.map((p, i) => <div key={i} onClick={() => router.push(`/parcelas/${p.id}`)} className="cursor-pointer"><TarjetaParcela parcela={p} urgente={true} /></div>)}
             </div>
           </div>
         )}
@@ -143,7 +146,7 @@ export default function Dashboard() {
           <div>
             <h2 className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-3">Sin problemas</h2>
             <div className="space-y-3">
-              {datos.bien.map((p, i) => <TarjetaParcela key={i} parcela={p} urgente={false} />)}
+              {datos.bien.map((p, i) => <div key={i} onClick={() => router.push(`/parcelas/${p.id}`)} className="cursor-pointer"><TarjetaParcela parcela={p} urgente={false} /></div>)}
             </div>
           </div>
         )}
