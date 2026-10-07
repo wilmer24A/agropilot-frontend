@@ -1,69 +1,153 @@
-import Image from "next/image";
+"use client";
+import { useEffect, useState } from "react";
 
-export default function Home() {
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
+const API_KEY = process.env.NEXT_PUBLIC_API_KEY;
+
+interface Parcela {
+  nombre: string;
+  cultivo: string;
+  hectareas: number;
+  ndvi: number;
+  prioridad: string;
+  fecha_analisis: string;
+  accion: string;
+}
+
+interface Dashboard {
+  resumen: {
+    total_parcelas: number;
+    total_hectareas: number;
+    urgente: number;
+    atencion: number;
+    bien: number;
+  };
+  urgente: Parcela[];
+  atencion: Parcela[];
+  bien: Parcela[];
+}
+
+function BadgePrioridad({ prioridad }: { prioridad: string }) {
+  const colores: Record<string, string> = {
+    "CRÍTICA": "bg-red-100 text-red-800",
+    "ALTA": "bg-amber-100 text-amber-800",
+    "MEDIA": "bg-yellow-100 text-yellow-800",
+    "NORMAL": "bg-green-100 text-green-800",
+  };
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <span className={`text-xs px-2 py-1 rounded-full font-medium ${colores[prioridad] || "bg-gray-100 text-gray-700"}`}>
+      {prioridad}
+    </span>
+  );
+}
+
+function BarraNDVI({ ndvi, prioridad }: { ndvi: number; prioridad: string }) {
+  const color = prioridad === "CRÍTICA" ? "bg-red-500" :
+    prioridad === "ALTA" ? "bg-amber-500" : "bg-green-500";
+  return (
+    <div className="mt-2">
+      <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+        <div className={`h-full rounded-full ${color}`} style={{ width: `${ndvi * 100}%` }} />
+      </div>
+      <p className="text-xs text-gray-400 mt-1">NDVI {ndvi}</p>
+    </div>
+  );
+}
+
+function TarjetaParcela({ parcela, urgente }: { parcela: Parcela; urgente: boolean }) {
+  return (
+    <div className={`bg-white rounded-xl border p-4 ${urgente ? "border-l-4 border-l-red-500" : "border-l-4 border-l-green-500"} border-gray-200`}>
+      <div className="flex items-start justify-between mb-2">
+        <div>
+          <h3 className="font-medium text-gray-900 text-sm">{parcela.nombre}</h3>
+          <p className="text-xs text-gray-500">{parcela.cultivo} · {parcela.hectareas} ha</p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+        <BadgePrioridad prioridad={parcela.prioridad} />
+      </div>
+      <BarraNDVI ndvi={parcela.ndvi} prioridad={parcela.prioridad} />
+      {urgente && parcela.accion && (
+        <p className="text-xs text-gray-600 mt-3 leading-relaxed border-t pt-3">
+          {parcela.accion.slice(0, 180)}...
+        </p>
+      )}
+    </div>
+  );
+}
+
+export default function Dashboard() {
+  const [datos, setDatos] = useState<Dashboard | null>(null);
+  const [cargando, setCargando] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    fetch(`${API_URL}/dashboard`, {
+      headers: { "X-API-Key": API_KEY || "" }
+    })
+      .then(r => r.json())
+      .then(setDatos)
+      .catch(() => setError("No se pudo conectar con la API"))
+      .finally(() => setCargando(false));
+  }, []);
+
+  if (cargando) return (
+    <div className="min-h-screen flex items-center justify-center">
+      <p className="text-gray-500 text-sm">Cargando parcelas...</p>
+    </div>
+  );
+
+  if (error) return (
+    <div className="min-h-screen flex items-center justify-center">
+      <p className="text-red-500 text-sm">{error}</p>
+    </div>
+  );
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <nav className="bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between">
+        <span className="font-medium text-gray-900">
+          <span className="text-green-600">Agro</span>Pilot AI
+        </span>
+        {(datos?.resumen.urgente ?? 0) > 0 && (
+          <span className="text-xs bg-red-100 text-red-800 px-3 py-1 rounded-full font-medium">
+  {datos?.resumen.urgente ?? 0} alerta{(datos?.resumen.urgente ?? 0) > 1 ? "s" : ""} urgente{(datos?.resumen.urgente ?? 0) > 1 ? "s" : ""}
+</span>
+        )}
+      </nav>
+
+      <div className="max-w-2xl mx-auto px-4 py-6">
+        <div className="grid grid-cols-3 gap-3 mb-6">
+          <div className="bg-white rounded-xl border border-gray-200 p-4 text-center">
+            <p className="text-xs text-gray-500 mb-1">Hectáreas</p>
+            <p className="text-xl font-medium">{datos?.resumen.total_hectareas} ha</p>
+          </div>
+          <div className="bg-white rounded-xl border border-gray-200 p-4 text-center">
+            <p className="text-xs text-gray-500 mb-1">Urgente</p>
+            <p className="text-xl font-medium text-red-600">{datos?.resumen.urgente}</p>
+          </div>
+          <div className="bg-white rounded-xl border border-gray-200 p-4 text-center">
+            <p className="text-xs text-gray-500 mb-1">Sin problema</p>
+            <p className="text-xl font-medium text-green-600">{datos?.resumen.bien}</p>
+          </div>
         </div>
-      </main>
+
+        {datos?.urgente && datos.urgente.length > 0 && (
+          <div className="mb-6">
+            <h2 className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-3">Acción urgente hoy</h2>
+            <div className="space-y-3">
+              {datos.urgente.map((p, i) => <TarjetaParcela key={i} parcela={p} urgente={true} />)}
+            </div>
+          </div>
+        )}
+
+        {datos?.bien && datos.bien.length > 0 && (
+          <div>
+            <h2 className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-3">Sin problemas</h2>
+            <div className="space-y-3">
+              {datos.bien.map((p, i) => <TarjetaParcela key={i} parcela={p} urgente={false} />)}
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
