@@ -110,9 +110,9 @@ export default function Dashboard() {
         <span className="font-medium text-gray-900">
           <span className="text-green-600">Agro</span>Pilot AI
         </span>
-        {(datos?.resumen.urgente ?? 0) > 0 && (
+        {(datos?.resumen?.urgente ?? 0) > 0 && (
           <span className="text-xs bg-red-100 text-red-800 px-3 py-1 rounded-full font-medium">
-  {datos?.resumen.urgente ?? 0} alerta{(datos?.resumen.urgente ?? 0) > 1 ? "s" : ""} urgente{(datos?.resumen.urgente ?? 0) > 1 ? "s" : ""}
+  {datos?.resumen?.urgente ?? 0} alerta{(datos?.resumen?.urgente ?? 0) > 1 ? "s" : ""} urgente{(datos?.resumen?.urgente ?? 0) > 1 ? "s" : ""}
 </span>
         )}
       </nav>
@@ -121,15 +121,15 @@ export default function Dashboard() {
         <div className="grid grid-cols-3 gap-3 mb-6">
           <div className="bg-white rounded-xl border border-gray-200 p-4 text-center">
             <p className="text-xs text-gray-500 mb-1">Hectáreas</p>
-            <p className="text-xl font-medium">{datos?.resumen.total_hectareas} ha</p>
+            <p className="text-xl font-medium">{datos?.resumen?.total_hectareas} ha</p>
           </div>
           <div className="bg-white rounded-xl border border-gray-200 p-4 text-center">
             <p className="text-xs text-gray-500 mb-1">Urgente</p>
-            <p className="text-xl font-medium text-red-600">{datos?.resumen.urgente}</p>
+            <p className="text-xl font-medium text-red-600">{datos?.resumen?.urgente}</p>
           </div>
           <div className="bg-white rounded-xl border border-gray-200 p-4 text-center">
             <p className="text-xs text-gray-500 mb-1">Sin problema</p>
-            <p className="text-xl font-medium text-green-600">{datos?.resumen.bien}</p>
+            <p className="text-xl font-medium text-green-600">{datos?.resumen?.bien}</p>
           </div>
         </div>
 
